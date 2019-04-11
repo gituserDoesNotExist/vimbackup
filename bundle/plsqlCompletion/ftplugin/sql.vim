@@ -4,9 +4,10 @@ let g:BASE_PATH=$HOME . "/.vim/bundle/plsqlCompletion/ftplugin"
 
 
 "#############create console window
-silent! execute winheight(0)/4 . "sp __CONSOLE__"
-
-
+augroup enterGroup
+	autocmd VimEnter *.sql execute winheight(0)/4 . "sp __CONSOLE__ | setlocal filetype=plsqlconsole | setlocal buftype=nofile"
+	autocmd VimEnter *.sql execute "NERDTree " . g:PATH_TO_SQL_FILES
+augroup END
 
 "############dictionary completion start
 setlocal dictionary+=plsql-dictionary
@@ -27,7 +28,7 @@ inoremap <c-o> <c-x><c-o>
 "############plsql-autocompletion end
 
 "#############compiling start
-let g:COMPILE_BASH_SCRIPT=g:BASE_PATH . "/ftplugin/compiling/compile-sql-file.sh"
+let g:COMPILE_BASH_SCRIPT=g:BASE_PATH . "/compiling/compile-sql-file.sh"
 
 nnoremap <F5> :w<cr>:CompileSql<cr>
 inoremap <F5> <esc>:w<cr>:CompileSql<cr>
