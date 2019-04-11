@@ -4,7 +4,7 @@ let g:BASE_PATH=$HOME . "/.vim/bundle/plsqlCompletion/ftplugin"
 
 
 "#############create console window
-silent! sp consol
+silent! execute winheight(0)/4 . "sp __CONSOLE__"
 
 
 
