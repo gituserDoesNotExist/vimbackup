@@ -6,7 +6,7 @@ DECLARE
     errormessages                 string_list := string_list();
     concatenated_error_messages   varchar2(4000) := '';
 BEGIN
-    SELECT replace(line || ': ' || text,chr(10),' ') BULK COLLECT INTO errormessages FROM dba_errors WHERE owner = 'DIETPLAN';
+    SELECT replace(name || '(line: ' || line || '): ' || text,chr(10),' ') BULK COLLECT INTO errormessages FROM dba_errors WHERE owner = 'DIETPLAN';
 
     FOR idx IN 1..errormessages.count LOOP
         concatenated_error_messages := concat(concatenated_error_messages, errormessages(idx));
@@ -14,7 +14,7 @@ BEGIN
             concatenated_error_messages := concat(concatenated_error_messages, '_NEWMESSAGE_');
         END IF;
     END LOOP;
-    dbms_output.put_line(concatenated_error_messages);
+    dbms_output.put_line('Errors during compilation:' || concatenated_error_messages);
 
 END;
 

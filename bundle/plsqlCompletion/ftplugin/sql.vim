@@ -5,8 +5,8 @@ let g:BASE_PATH=$HOME . "/.vim/bundle/plsqlCompletion/ftplugin"
 
 "#############create console window
 augroup enterGroup
-	autocmd VimEnter *.sql execute winheight(0)/4 . "sp __CONSOLE__ | setlocal filetype=plsqlconsole | setlocal buftype=nofile"
-	autocmd VimEnter *.sql execute "NERDTree " . g:PATH_TO_SQL_FILES
+"	autocmd VimEnter *.sql execute winheight(0)/4 . "sp __CONSOLE__ | setlocal filetype=plsqlconsole | setlocal buftype=nofile"
+""	autocmd VimEnter *.sql execute "NERDTree " . g:PATH_TO_SQL_FILES
 augroup END
 
 "############dictionary completion start

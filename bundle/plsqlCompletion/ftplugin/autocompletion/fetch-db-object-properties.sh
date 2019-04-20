@@ -3,7 +3,7 @@
 objectname=$1
 #this file should be in the same folder as object-types.sql!!!!!
 pathToCurrentFile=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-pathToObjectTypesFile=$pathToCurrentFile
+pathToSqlFile=$pathToCurrentFile
 
 if [ -z $objectname ] 
 then
@@ -12,11 +12,11 @@ then
 fi
 
 
-result=$(sqlplus -s dietplan/dietplan << EOF
+result=$(sqlplus -s es_metadata/es_metadata << EOF
 set serveroutput on;
 set feedback off;
 set verify off;
-@$pathToObjectTypesFile/object-types.sql $objectname
+@$pathToSqlFile/call-metadata-info.sql $objectname
 /
 exit;
 EOF
