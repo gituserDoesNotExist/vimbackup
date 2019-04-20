@@ -1,5 +1,6 @@
 "Path to folder containing sql files
-let g:PATH_TO_SQL_FILES=$HOME . "/java-sht/projects/es-dietplan/additional-shit/backup-plsql-files/DIETPLAN/"
+
+let g:PATH_TO_SQL_FILES=$HOME . "/java-sht/projects/es-dietplan/plsql/DIETPLAN"
 let g:BASE_PATH=$HOME . "/.vim/bundle/plsqlCompletion/ftplugin"
 
 

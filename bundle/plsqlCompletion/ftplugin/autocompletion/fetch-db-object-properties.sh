@@ -11,16 +11,15 @@ then
 	exit 1
 fi
 
-
 result=$(sqlplus -s es_metadata/es_metadata << EOF
 set serveroutput on;
 set feedback off;
 set verify off;
-@$pathToSqlFile/call-metadata-info.sql $objectname
-/
+execute dbms_output.put_line('hello world' || '$objectname');
 exit;
 EOF
 )
 
+#@$pathToSqlFile/call-metadata-info.sql $objectname
 
 echo $result
