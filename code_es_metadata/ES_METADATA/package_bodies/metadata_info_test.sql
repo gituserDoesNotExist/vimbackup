@@ -6,21 +6,28 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO_TEST AS
     BEGIN
         result := metadata_info.extract_autocompletion_info('FOOD_DAO.');
         
-        ut.expect(result).to_equal('CREATE_LEBENSMITTEL(T_LEBENSMITTEL) : NUMBER');
+        ut.expect(result).to_equal('FOOD_DAO.CREATE_LEBENSMITTEL(T_LEBENSMITTEL) : NUMBER');
     end test_autocomplete_proc_package;
 
     procedure test_autocompl_proc_sys_pack is
     begin
         result := metadata_info.extract_autocompletion_info('DBMS_OUTPUT.');
         
-        ut.expect(result).to_equal('DISABLE() : void;ENABLE(BUFFER_SIZE) : void;GET_LINE(LINE,STATUS) : void;GET_LINES(LINES,LINES,NUMLINES,NUMLINES) : VARCHAR2;GET_LINES(LINES,LINES,NUMLINES,NUMLINES) : VARCHAR2;NEW_LINE() : VARCHAR2;PUT(A) : VARCHAR2;PUT_LINE(A) : VARCHAR2');
+        ut.expect(result).to_equal('BMS_OUTPUT.DISABLE() : void;DBMS_OUTPUT.ENABLE(BUFFER_SIZE) : void;DBMS_OUTPUT.GET_LINE(LINE,STATUS) : void;DBMS_OUTPUT.GET_LINES(LINES,LINES,NUMLINES,NUMLINES) : VARCHAR2;DBMS_OUTPUT.GET_LINES(LINES,LINES,NUMLINES,NUMLINES) : VARCHAR2;DBMS_OUTPUT.NEW_LINE() : VARCHAR2;DBMS_OUTPUT.PUT(A) : VARCHAR2;DBMS_OUTPUT.PUT_LINE(A) : VARCHAR2');
     end;
 
     procedure test_autocomplete_obj_types is
     begin
         result := metadata_info.extract_autocompletion_info('BASE_ENTITY.');
         
-        ut.expect(result).to_equal('CREATED_AT;ENTITY_ID;LAST_MODIFIED;BASE_ENTITY(P_ID) : void;EQUALS(OTHER_ENTITY) : void');
+        ut.expect(result).to_equal('BASE_ENTITY.CREATED_AT;BASE_ENTITY.ENTITY_ID;BASE_ENTITY.LAST_MODIFIED;BASE_ENTITY.BASE_ENTITY(P_ID) : void;BASE_ENTITY.EQUALS(OTHER_ENTITY) : void');
+    end;
+    
+    procedure autocomplete_objtypes_case_ins is
+    begin
+        result := metadata_info.extract_autocompletion_info('base');
+        
+        ut.expect(result).to_equal('BASE_ENTITY');
     end;
     
     procedure test_autocomplete_procedures is
@@ -34,7 +41,7 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO_TEST AS
     begin
         result := metadata_info.extract_autocompletion_info('VITAMINE.');
         
-        ut.expect(result).to_equal('FOOD_ID;VITAMIN_K;VITAMIN_E;VITAMIN_D;VITAMIN_C;VITAMIN_B12;VITAMIN_B6;VITAMIN_B2;VITAMIN_B1;VITAMIN_A_BETACAROTIN;VITAMIN_A_RETINOL;LAST_MODIFIED;CREATED_AT;ID');
+        ut.expect(result).to_equal('VITAMINE.FOOD_ID;VITAMINE.VITAMIN_K;VITAMINE.VITAMIN_E;VITAMINE.VITAMIN_D;VITAMINE.VITAMIN_C;VITAMINE.VITAMIN_B12;VITAMINE.VITAMIN_B6;VITAMINE.VITAMIN_B2;VITAMINE.VITAMIN_B1;VITAMINE.VITAMIN_A_BETACAROTIN;VITAMINE.VITAMIN_A_RETINOL;VITAMINE.LAST_MODIFIED;VITAMINE.CREATED_AT;VITAMINE.ID');
     end;
 
 

@@ -9,16 +9,7 @@ function! Complete(findstart,base)
 		if IsDbQuery()
 			return FindMatchingProposalsForQuery(a:base)
 		endif
-		if DoesUserWantToSearchForFile(a:base)
-			return FindMatchingFiles(a:base)
-		endif
-		if DoesUserWantsToSearchForAttrsAndMethodsOfObjectTypeOrPackage(a:base)
-			return FindMatchingAttributesInFile(a:base)
-		endif
-		if DoesUserWantsToSearchForProcedureOrFunction(a:base)
-			return FindParametersForProcedure(a:base)
-		endif
-		return ["no","match","found","for:",a:base]
+		return GetProposalsFromPlsqlEngine(a:base)
 	endif
 endfun
 
@@ -90,48 +81,17 @@ function! FindMatchingFilesInSubfolder(name,partOfPath)
 	return l:matchingFileNames
 endfun
 
-function! FindMatchingFiles(name)
-	return FindMatchingFilesInSubfolder(a:name,'')
+
+function! CallPlsqlEngine(shellScriptParameter)
+	echom 'param is ' . a:shellScriptParameter
+    let l:resultstring = system(b:bashScriptAutocompletion . ' ' . a:shellScriptParameter)
+	echom 'resultstr is ' . l:resultstring
+   	return split(l:resultstring,";")
 endfun
 
 
-
-function! DoesUserWantsToSearchForAttrsAndMethodsOfObjectTypeOrPackage(userinput)
-	return a:userinput =~ "\\w\\+\\.\\w*"
-endfun
-
-
-"corresponds to that what user entered, e.g. base_entity.enti
-function! FindMatchingAttributesInFile(userInput)
-	let l:dbObjectName=substitute(a:userInput,"\\(\\w\\+\\)\\.\\(\\w*\\)","\\1","g")
-	let l:partOfAttribute=substitute(a:userInput,"\\(\\w\\+\\)\\.\\(\\w*\\)","\\2","g")
-
-    let l:metadata = CallPlsqlEngine(l:dbObjectName)
-
-	let l:matchingAttributes=["..."]
-	for l:attribute in l:metadata
-		if toupper(l:attribute) =~ toupper(l:partOfAttribute)
-			call add(l:matchingAttributes,l:dbObjectName . '.' . l:attribute)
-		endif
-	endfor
-    return l:matchingAttributes
-endfun
-
-function! CallPlsqlEngine(dbObjectName)
-    let l:resultstring = system(b:bashScriptAutocompletion . ' ' . toupper(a:dbObjectName))
-    let l:metadata = split(l:resultstring,";")
-	return l:metadata
-endfun
-
-
-function! DoesUserWantsToSearchForProcedureOrFunction(userinput)
-	return a:userinput =~ "\\w\\+("
-endfun
-
-function! FindParametersForProcedure(userInput)
-	let l:procedureName=substitute(a:userInput,"\\(\\w\\+\\)(","\\1","g")
-    let l:resultstring = system(b:bashScriptAutocompletion . ' ' . toupper(l:procedureName))
-	return [l:resultstring]
+function! GetProposalsFromPlsqlEngine(userInput)
+	return CallPlsqlEngine(a:userInput)
 endfun
 
 

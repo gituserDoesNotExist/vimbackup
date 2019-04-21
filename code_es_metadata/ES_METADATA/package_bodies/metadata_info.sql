@@ -2,6 +2,19 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
 
     TYPE string_list IS TABLE OF VARCHAR2(700);
 
+    procedure prepend_dbobject_name(t_all_metadata in out string_list, dbobj_name varchar2)
+    is
+        tmp varchar2(500);
+    begin
+        for idx in 1..t_all_metadata.count loop
+            tmp := concat(dbobj_name,'.');
+            tmp := concat(tmp,t_all_metadata(idx));
+            t_all_metadata(idx) := tmp;
+        end loop;
+    end;
+            
+
+
     FUNCTION should_search_for_dbobj_name (v_user_input VARCHAR2) RETURN BOOLEAN 
     IS
     BEGIN
@@ -18,7 +31,7 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
             SELECT object_name AS dbobjname FROM all_procedures WHERE object_name LIKE concat(v_part_dbobj_name,'%')
         )
         SELECT dbobjname BULK COLLECT INTO all_metadata FROM all_matching_dbobj_names;
-
+    
         RETURN all_metadata;
     END search_for_dbobj_name;
 
@@ -178,7 +191,7 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
             all_metadata.extend;
             all_metadata(all_metadata.last) := tmp_proc_plus_arguments;
         END IF;
-
+        prepend_dbobject_name(all_metadata,v_dbobj_name);
         RETURN all_metadata;
     END search_dbobj_attrs_and_methods;
 
@@ -201,7 +214,7 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
         dbobj_name varchar2(30);
         all_metadata string_list;
     BEGIN
-        dbobj_name := user_input_analyzer.extract_dbobj_name(v_user_input);
+        dbobj_name := upper(user_input_analyzer.extract_dbobj_name(v_user_input));
         IF should_search_for_dbobj_name(v_user_input) THEN
             all_metadata := search_for_dbobj_name(dbobj_name);
         ELSE

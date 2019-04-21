@@ -11,6 +11,10 @@ CREATE OR REPLACE PACKAGE ES_METADATA.METADATA_INFO_TEST AS
     --%test(test autocomplete object types)
     procedure test_autocomplete_obj_types;
  
+    --%test(test autocomplete object types. is not case sensitive)
+    procedure autocomplete_objtypes_case_ins;
+ 
+ 
     --%test(test autocomplete procedures)
     procedure test_autocomplete_procedures;
 

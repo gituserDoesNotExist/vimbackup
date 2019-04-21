@@ -10,7 +10,7 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.USER_INPUT_ANALYZER AS
         return v_extracted_schema is not null;
     EXCEPTION when no_data_found then
         --if nothing is found, the given schema_name is not a schema!
-        dbms_output.put_line('there is no schema named ' || schema_name);
+        --dbms_output.put_line('there is no schema named ' || schema_name);
         return false;
     end is_schema_in_db;
 
