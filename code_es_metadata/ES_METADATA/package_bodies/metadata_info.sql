@@ -1,46 +1,33 @@
 CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
 
-    TYPE string_list IS
-        TABLE OF VARCHAR2(700);
+    TYPE string_list IS TABLE OF VARCHAR2(700);
 
-    FUNCTION should_search_for_dbobj_name (
-        v_user_input VARCHAR2
-    ) RETURN BOOLEAN IS
+    FUNCTION should_search_for_dbobj_name (v_user_input VARCHAR2) RETURN BOOLEAN 
+    IS
     BEGIN
-        return not REGEXP_LIKE(v_user_input,'\.','i');
+        return not user_input_analyzer.contains_attr_or_method_part(v_user_input);
     END should_search_for_dbobj_name;
 
-    FUNCTION search_for_dbobj_name (
-        v_part_dbobj_name VARCHAR2
-    ) RETURN string_list IS
+    FUNCTION search_for_dbobj_name (v_part_dbobj_name VARCHAR2) RETURN string_list 
+    IS
         all_metadata string_list := string_list();
     BEGIN
-        WITH q AS (
-            SELECT type_name AS dbobjname
-            FROM all_types
-            WHERE type_name LIKE concat(v_part_dbobj_name,'%')
+        WITH all_matching_dbobj_names AS (
+            SELECT type_name AS dbobjname FROM all_types WHERE type_name LIKE concat(v_part_dbobj_name,'%')
             UNION
-            SELECT object_name AS dbobjname
-            FROM all_procedures
-            WHERE object_name LIKE concat(v_part_dbobj_name,'%')
+            SELECT object_name AS dbobjname FROM all_procedures WHERE object_name LIKE concat(v_part_dbobj_name,'%')
         )
-        SELECT dbobjname BULK COLLECT
-        INTO all_metadata
-        FROM q;
+        SELECT dbobjname BULK COLLECT INTO all_metadata FROM all_matching_dbobj_names;
 
         RETURN all_metadata;
     END search_for_dbobj_name;
 
-    FUNCTION search_dbobj_attrs_and_methods (
-        v_dbobj_name VARCHAR2
-    ) RETURN string_list IS
+    FUNCTION search_dbobj_attrs_and_methods (v_dbobj_name VARCHAR2) RETURN string_list IS
 
         dbobject_name VARCHAR2(30) := v_dbobj_name;
-        TYPE argument_record IS RECORD (
-            argument_name VARCHAR2(30), argument_data_type VARCHAR2(30)
-        );
-        TYPE argument_list IS
-            TABLE OF argument_record;
+        TYPE argument_record IS RECORD (argument_name VARCHAR2(30), argument_data_type VARCHAR2(30));
+        TYPE argument_list IS TABLE OF argument_record;
+        
         obj_attributes string_list := string_list();
         procedures string_list := string_list();
         tbl_columns string_list := string_list();
@@ -52,16 +39,10 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
         tmp_proc_plus_arguments VARCHAR2(1000) := '';
         current_proc_name VARCHAR2(30);
     BEGIN
-        SELECT object_type BULK COLLECT
-        INTO obj_types
-        FROM sys.all_objects
-        WHERE upper(object_name) = upper(dbobject_name);
+        SELECT object_type BULK COLLECT INTO obj_types FROM sys.all_objects WHERE upper(object_name) = upper(dbobject_name);
 
         BEGIN
-            SELECT table_name
-            INTO tbl_name
-            FROM all_tables
-            WHERE upper(table_name) = upper(dbobject_name);
+            SELECT table_name INTO tbl_name FROM all_tables WHERE upper(table_name) = upper(dbobject_name);
 
         EXCEPTION
             WHEN no_data_found THEN
@@ -69,22 +50,16 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
         END;
 
         IF obj_types IS EMPTY AND tbl_name IS NULL THEN
-            dbms_output.put_line('nothing;found');
+            dbms_output.put_line('nothing found');
+            all_metadata := string_list('nothing','found');
             RETURN all_metadata;
         END IF;
 
         IF tbl_name IS NOT NULL THEN
-            SELECT column_name BULK COLLECT
-            INTO tbl_columns
-            FROM all_tab_cols
-            WHERE upper(table_name) = upper(dbobject_name);
-
+            SELECT column_name BULK COLLECT INTO tbl_columns FROM all_tab_cols WHERE upper(table_name) = upper(dbobject_name);
             all_metadata := tbl_columns;
         ELSIF obj_types(1) LIKE 'TYPE%' THEN
-            SELECT attr_name BULK COLLECT
-            INTO obj_attributes
-            FROM all_type_attrs
-            WHERE upper(type_name) = upper(dbobject_name);
+            SELECT attr_name BULK COLLECT INTO obj_attributes FROM all_type_attrs WHERE upper(type_name) = upper(dbobject_name);
 
             FOR i IN 1..obj_attributes.count LOOP
                 all_metadata.extend;
@@ -207,29 +182,32 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
         RETURN all_metadata;
     END search_dbobj_attrs_and_methods;
 
-    PROCEDURE extract_autocompletion_info (
-        v_user_input IN VARCHAR2
-    ) IS
-        dbobj_name varchar2(30);
-        all_metadata string_list;
-        resultstring VARCHAR2(10000) := '';
-    BEGIN
-        IF should_search_for_dbobj_name(v_user_input) THEN
-            all_metadata := search_for_dbobj_name(v_user_input);
-        ELSE
-            dbobj_name := replace(v_user_input,'.');
-            all_metadata := search_dbobj_attrs_and_methods(dbobj_name);
-       END IF;     
-            
-        FOR idx IN 1..all_metadata.count LOOP
+    function list_to_semicolon_sep_str(t_all_metadata string_list) return varchar2 
+    is
+        resultstring VARCHAR2(10000) := '';    
+    begin
+         FOR idx IN 1..t_all_metadata.count LOOP
             IF idx != 1 THEN
                 resultstring := concat(resultstring, ';');
             END IF;
-
-            resultstring := concat(resultstring, all_metadata(idx));
+            resultstring := concat(resultstring, t_all_metadata(idx));
         END LOOP;
+        RETURN resultstring;
+    end list_to_semicolon_sep_str;
 
-        dbms_output.put_line(resultstring);
+
+    function extract_autocompletion_info(v_user_input IN VARCHAR2) return varchar2
+    IS
+        dbobj_name varchar2(30);
+        all_metadata string_list;
+    BEGIN
+        dbobj_name := user_input_analyzer.extract_dbobj_name(v_user_input);
+        IF should_search_for_dbobj_name(v_user_input) THEN
+            all_metadata := search_for_dbobj_name(dbobj_name);
+        ELSE
+            all_metadata := search_dbobj_attrs_and_methods(dbobj_name);
+       END IF;     
+       return list_to_semicolon_sep_str(all_metadata);    
     END extract_autocompletion_info;
 
 END metadata_info;
