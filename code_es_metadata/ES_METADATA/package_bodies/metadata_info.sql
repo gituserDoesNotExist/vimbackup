@@ -50,6 +50,8 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
         tbl_name VARCHAR2(30) := '';
         all_metadata string_list := string_list();
         tmp_proc_plus_arguments VARCHAR2(1000) := '';
+        procname_plus_arguments varchar2(2000);
+        concatenated_arguments varchar2(1000);
         current_proc_name VARCHAR2(30);
     BEGIN
         SELECT object_type BULK COLLECT INTO obj_types FROM sys.all_objects WHERE upper(object_name) = upper(dbobject_name);
@@ -86,30 +88,16 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
 
             FOR proc_idx IN 1..procedures.count LOOP
                 current_proc_name := procedures(proc_idx);
-                tmp_proc_plus_arguments := current_proc_name;
-                SELECT argument_name, data_type BULK COLLECT
-                INTO arguments
-                FROM all_arguments
-                WHERE owner = 'DIETPLAN' AND package_name = upper(dbobject_name) AND object_name = upper(current_proc_name)
-                ORDER BY position;
+                SELECT first_value(data_type) over (order by position) into return_type FROM all_arguments
+                WHERE package_name = upper(dbobject_name) AND object_name = upper(current_proc_name) and argument_name is null;
 
-                tmp_proc_plus_arguments := concat(tmp_proc_plus_arguments, '(');
-                FOR argument_idx IN 1..arguments.count LOOP IF arguments(argument_idx).argument_name IS NOT NULL AND arguments(argument_idx).argument_name != 'SELF'
-                THEN
-                    tmp_proc_plus_arguments := concat(tmp_proc_plus_arguments, arguments(argument_idx).argument_name);
-                    IF argument_idx != arguments.last THEN
-                        tmp_proc_plus_arguments := concat(tmp_proc_plus_arguments, ',');
-                    END IF;
+                SELECT listagg(argument_name,',') within group (order by position) concatenatedshit into concatenated_arguments FROM all_arguments
+                WHERE package_name = upper(dbobject_name) AND object_name = upper(current_proc_name) and argument_name is not null and argument_name <> 'SELF';
 
-                ELSIF arguments(argument_idx).argument_name != 'SELF' THEN
-                    return_type := arguments(argument_idx).argument_data_type;
-                END IF;
-                END LOOP;
-
-                tmp_proc_plus_arguments := concat(tmp_proc_plus_arguments, ')');
-                tmp_proc_plus_arguments := concat(tmp_proc_plus_arguments, ' : ' || return_type);
+                procname_plus_arguments := current_proc_name || '(' || concatenated_arguments || ')' || ' : ' || return_type;
+                
                 all_metadata.extend;
-                all_metadata(all_metadata.last) := tmp_proc_plus_arguments;
+                all_metadata(all_metadata.last) := procname_plus_arguments;
             END LOOP;
 
         ELSIF obj_types(1) LIKE 'PACKAGE%' THEN
