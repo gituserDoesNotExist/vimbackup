@@ -26,6 +26,6 @@ exit;
 EOF
 )
 
-
+result=${result//[[:space:]]/}
 echo $result
 
