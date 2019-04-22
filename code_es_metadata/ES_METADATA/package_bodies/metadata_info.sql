@@ -215,16 +215,16 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
     end;
 
 
-    function extract_autocompletion_info(v_user_input IN VARCHAR2) return varchar2
+    function extract_autocompletion_info(p_user_input IN VARCHAR2) return varchar2
     IS
         dbobj_name varchar2(30);
         attr_or_method varchar2(30);
         schema_name varchar2(30);
         all_metadata string_list;
     BEGIN
-        schema_name := upper(user_input_analyzer.extract_schema_name(v_user_input));
-        dbobj_name := upper(user_input_analyzer.extract_dbobj_name(v_user_input));
-        IF should_search_for_dbobj_name(v_user_input) THEN
+        schema_name := upper(user_input_analyzer.extract_schema_name(p_user_input));
+        dbobj_name := upper(user_input_analyzer.extract_dbobj_name(p_user_input));
+        IF should_search_for_dbobj_name(p_user_input) THEN
             all_metadata := search_for_dbobj_name(schema_name,dbobj_name);
         ELSIF is_dbobj_a_function_or_proc(dbobj_name) then
             all_metadata := search_for_func_or_proc(dbobj_name,schema_name);
@@ -233,9 +233,35 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO AS
         else
             all_metadata := search_packobjtype_attrmethods(dbobj_name);
        END IF;   
-       attr_or_method := user_input_analyzer.extract_attr_or_method(v_user_input);
+       attr_or_method := user_input_analyzer.extract_attr_or_method(p_user_input);
        return list_to_semicolon_sep_str(filter_matching_items(all_metadata,attr_or_method));    
     END extract_autocompletion_info;
+    
+    
+    --###################################################################################################
+    function find_dependent_objects(p_dbobj_to_name in varchar2) return varchar2 
+    is
+        type_of_object_to_rename varchar2(30);
+        dependent_objects string_list := string_list();
+        dependent_objects_string varchar2(2000);
+    begin
+        SELECT object_type bulk collect into dependent_objects from SYS.all_procedures where object_name = upper(p_dbobj_to_name) and rownum = 1;
+     
+        select name bulk collect into dependent_objects from all_dependencies where referenced_name = upper(p_dbobj_to_name) and name <> upper(p_dbobj_to_name);    
+
+        --remove duplicates
+        dependent_objects := dependent_objects MULTISET UNION DISTINCT dependent_objects;
+    
+        for idx in 1..dependent_objects.count loop
+            dependent_objects_string := concat(dependent_objects_string,dependent_objects(idx));
+            if idx != dependent_objects.count then
+                dependent_objects_string := concat(dependent_objects_string,';');
+            end if;
+        end loop;
+        return dependent_objects_string;
+    end;
+    
+    
 
 END metadata_info;
 /

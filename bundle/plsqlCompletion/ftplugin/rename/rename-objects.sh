@@ -29,15 +29,25 @@ function getFilepathsForObject {
 
 
 #find dependent objects
-dependentObjectsStr=$(sqlplus -s dietplan/dietplan << EOF
+dependentObjectsStr=$(sqlplus -s es_metadata/es_metadata << EOF
 set serveroutput on;
 set feedback off;
 set verify off;
-@$pathToSqlFile/find-dependent-objects.sql $oldObjectName
+declare
+dependent_objects varchar2(10000);
+begin
+dependent_objects:=es_metadata.metadata_info.find_dependent_objects('$oldObjectName');
+dbms_output.put_line(dependent_objects);
+end;
 /
 exit;
 EOF
 )
+
+echo $dependentObjectsStr
+
+exit 0
+
 dependentObjectsStr=${dependentObjectsStr//[[:space:]]/}
 dependentObjects=$(IFS=';'; read -r -a files <<< $dependentObjectsStr; echo ${files[@]})
 

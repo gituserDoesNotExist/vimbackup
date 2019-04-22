@@ -100,7 +100,12 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.METADATA_INFO_TEST AS
     end;
     
 
-    
+    procedure test_find_dependent_objects is
+    begin
+        result := metadata_info.find_dependent_objects('USER_INPUT_ANALYZER');
+        
+        ut.expect(result).to_equal('METADATA_INFO;USER_INPUT_ANALYZER_TEST');
+    end;
 
 
 end metadata_info_test;
