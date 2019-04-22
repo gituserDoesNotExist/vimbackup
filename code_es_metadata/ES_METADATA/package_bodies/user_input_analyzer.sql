@@ -68,38 +68,63 @@ CREATE OR REPLACE PACKAGE BODY ES_METADATA.USER_INPUT_ANALYZER AS
     AS
         v_parts_user_input string_list;    
         v_current_part varchar2(30);
+        schema_in_db boolean;
     BEGIN
         v_parts_user_input := convert_user_input_to_list(v_user_input);
+        schema_in_db := is_schema_in_db(v_parts_user_input(1));
         --if the first part of user input is a schema, then the second part is the dbobj_name, otherwise the first part is the dbobj_name
-        if is_schema_in_db(v_parts_user_input(1)) then
+        --example: schemaname.objname
+        if schema_in_db and v_parts_user_input.count = 2 then
             return v_parts_user_input(2);
         end if;
-        return v_parts_user_input(1);
+        if schema_in_db and v_parts_user_input.count = 1 then
+            return null;
+        end if;
+        if schema_in_db and v_parts_user_input.count = 3 then
+            return v_parts_user_input(2);
+        end if;
+
+        --example: schemaname. or objname.attr
+        if not schema_in_db then
+            return v_parts_user_input(1);
+        end if;
+
+        return null;
     END extract_dbobj_name;
 
-    FUNCTION extract_attr_or_method (v_user_input VARCHAR2) RETURN VARCHAR2
+    FUNCTION extract_attr_or_method (p_user_input VARCHAR2) RETURN VARCHAR2
     AS
         v_parts_user_input string_list;    
         v_current_part varchar2(30);    
+        schema_in_db boolean;
     BEGIN
-        if is_user_input_ended_by_dot(v_user_input) then
+        if is_user_input_ended_by_dot(p_user_input) then
             return '';
         end if;
-        v_parts_user_input := convert_user_input_to_list(v_user_input);
+        v_parts_user_input := convert_user_input_to_list(p_user_input);
+        schema_in_db := is_schema_in_db(v_parts_user_input(1));
         --if first part is schema, then third part is attr, otherwise second part, unless user specifies only dbobj name, then there is not second part    
-        if is_schema_in_db(v_parts_user_input(1)) and v_parts_user_input.last = 3 then
+        if schema_in_db and v_parts_user_input.last = 3 then
             return v_parts_user_input(3);
+        --if first part is schema there are only two parts, then the second part is dbobjname and there is not attr or method
         end if;
-        if v_parts_user_input.last > 1 then
+        if not schema_in_db and v_parts_user_input.last = 2 then
             return v_parts_user_input(2);
         end if;
         return null;
     END extract_attr_or_method;
 
-    FUNCTION contains_attr_or_method_part (v_user_input VARCHAR2) RETURN BOOLEAN AS
-        attr_or_method varchar2(30);
+    FUNCTION contains_attr_or_method_part (p_user_input VARCHAR2) RETURN BOOLEAN 
+    IS
+       contains_attr_or_method boolean;
+       dbobj_name varchar2(30);
+       attr_or_method varchar2(30);
     BEGIN
-        return is_user_input_ended_by_dot(v_user_input) or extract_attr_or_method(v_user_input) is not null;
+        dbobj_name := extract_dbobj_name(p_user_input);
+        attr_or_method := extract_attr_or_method(p_user_input);
+    
+        contains_attr_or_method := dbobj_name is not null and (attr_or_method is not null or is_user_input_ended_by_dot(p_user_input)); 
+        return contains_attr_or_method;
     END contains_attr_or_method_part;
 
 END user_input_analyzer;
