@@ -44,26 +44,51 @@ exit;
 EOF
 )
 
-echo $dependentObjectsStr
-
-exit 0
-
 dependentObjectsStr=${dependentObjectsStr//[[:space:]]/}
 dependentObjects=$(IFS=';'; read -r -a files <<< $dependentObjectsStr; echo ${files[@]})
+
+echo "the following objects depend on $oldObjectName and will be modified..."
+for object in ${dependentObjects[@]}
+do
+	echo $object
+done
+
+echo 'continue? [y(yes)/n(no)]'
+read -r userInput
+
+if [[ $userInput != 'y' ]]
+then
+	echo 'nothing to do...'
+	exit 0
+fi
 
 
 #renaming dependent files
 for objectname in ${dependentObjects[@]}
 do
-	filepaths=$(getFilepathsForObject $objectname)
+	filepaths=($(getFilepathsForObject $objectname))
 	for filepath in ${filepaths[@]}
 	do
-		if [ -f $filepath ]
+		if [ ! -f $filepath ]
 		then
-			echo 'renaming' $oldObjectName 'to' $newObjectname 'in depending object' $filepath
-			echo $(cat $filepath | sed "s/\<$oldObjectName\>/$newObjectname/Ig") > $filepath
-		else
 			echo 'file' $filepath 'does not exist!'
+		else
+			dirCurrentFile=${filepath%/*}
+			filenameWithExtension=${filepath##*/}
+			filenameWithoutExtension=${filenameWithExtension%.*}
+			tmpFilepath=${dirCurrentFile}/${filenameWithoutExtension}_TMP.sql
+			echo 'renaming' $oldObjectName 'to' $newObjectname 'in depending object' $tmpFilepath
+			cat $filepath | sed "s/\<$oldObjectName\>/$newObjectname/Ig" > $tmpFilepath
+			kdiff3 $filepath $filepath $tmpFilepath -o $tmpFilepath --cs CreateBakFiles=0 #do no create .orig files
+			echo 'apply change? [y(yes)/n(no)]'
+			read -r userInputApplyChange
+			if [[ $userInputApplyChange = 'y' ]]
+			then
+				rm $filepath
+				mv $tmpFilepath	$filepath
+			else
+				rm $tmpFilepath
+			fi
 		fi
 	done
 done
@@ -76,14 +101,21 @@ do
 	if [ -f $filepathActualFile ]
 	then
 		echo 'renaming' $oldObjectName 'to' $newObjectname 'in actual file' $filepathActualFile '...'
-		folderpathActualFile=$(dirname $filepathActualFile)
-		echo "... and renaming file $filepathActualFile to $folderpathActualFile/$newObjectname.sql"
-		echo $(cat $filepathActualFile | sed "s/\<$oldObjectName\>/$newObjectname/Ig") > $folderpathActualFile/$newObjectname.sql
-		rm $filepathActualFile
+		folderpathActualFile=${filepathActualFile%/*}
+		newFilename=${folderpathActualFile}/${newObjectname}.sql
+		echo "... and renaming file $filepathActualFile to $newFilename"
+		cat $filepathActualFile | sed "s/\<$oldObjectName\>/$newObjectname/Ig" > $newFilename
+		kdiff3 $filepathActualFile $filepathActualFile $newFilename -o $newFilename --cs CreateBakFiles=0 #do no create .orig files
+		echo 'apply change? [y(yes)/n(no)]'
+		read -r userInputApplyChange
+		if [[ $userInputApplyChange = 'y' ]]
+		then
+			rm $filepathActualFile
+		else
+			rm $newFilename
+		fi
 	fi
 done
-
-
 
 
 
